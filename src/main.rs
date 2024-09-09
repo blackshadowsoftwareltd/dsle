@@ -1,42 +1,43 @@
 use futures_util::StreamExt;
 use tokio;
 use zbus::dbus_proxy;
+use zbus::zvariant;
 use zbus::Connection;
-
-#[dbus_proxy(interface = "org.freedesktop.login1.Manager")]
-trait Manager {
-    #[dbus_proxy(signal)]
-    fn prepare_for_sleep(&self, going_down: bool) -> zbus::Result<()>;
-}
-#[dbus_proxy(interface = "org.freedesktop.ScreenSaver")]
-trait ScreenSaver {
-    #[dbus_proxy(signal)]
-    fn active_changed(&self, is_active: bool) -> zbus::Result<()>;
-}
-
-pub async fn detect_lock_unlock() {
-    println!("1");
-    let connection = Connection::system().await.unwrap();
-    println!("2");
-    let proxy = ManagerProxy::new(
-        &connection,               // The DBus connection
-        "org.freedesktop.login1",  // The DBus destination
-        "/org/freedesktop/login1", // The object path
-    )
-    .await
-    .unwrap();
-    println!("3");
-    let mut signal_stream = proxy.receive_prepare_for_sleep().await.unwrap();
-    println!("4");
-
-    while let Some(signal) = signal_stream.next().await {
-        println!("Signal received {:?}", signal);
-    }
-}
 
 #[tokio::main]
 async fn main() {
-    println!("0");
-    detect_lock_unlock().await;
-    println!("5");
+    active().await;
+}
+#[dbus_proxy(interface = "org.freedesktop.DBus.Properties")]
+trait Properties {
+    #[dbus_proxy(signal)]
+    fn properties_changed(
+        &self,
+        interface_name: &str,
+        changed_properties: std::collections::HashMap<String, zvariant::OwnedValue>,
+        invalidated_properties: Vec<String>,
+    ) -> zbus::Result<()>;
+}
+
+async fn active() {
+    let connection = Connection::system().await.unwrap();
+
+    let proxy = PropertiesProxy::new(
+        &connection,
+        "org.freedesktop.login1",
+        "/org/freedesktop/login1/session/_32", // Path to the session (you may need to adapt this path)
+    )
+    .await
+    .unwrap();
+    let mut signal_stream = proxy.receive_properties_changed().await.unwrap();
+    println!("Listening for signals");
+    while let Some(signal) = signal_stream.next().await {
+        if let Ok(args) = signal.args() {
+            if let Some(value) = args.changed_properties.get("IdleHint") {
+                if let Ok(x) = value.downcast_ref::<bool>() {
+                    println!("Signal received {:?}", x);
+                }
+            }
+        }
+    }
 }
