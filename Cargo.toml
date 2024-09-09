@@ -1,0 +1,8 @@
+[package]
+name = "lock_screen_d"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+zbus = "4.4.0"
+tokio = { version = "1.40.0", features = ["full"] }
