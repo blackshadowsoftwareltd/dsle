@@ -1,43 +1,20 @@
-use futures_util::StreamExt;
-use tokio;
-use zbus::dbus_proxy;
-use zbus::zvariant;
-use zbus::Connection;
-
+use std::env;
+pub mod linux_platform;
+pub mod windows_platform;
+use crate::linux_platform::linux_lock_unlock;
+use crate::windows_platform::windows_lock_unlock;
 #[tokio::main]
 async fn main() {
-    active().await;
-}
-#[dbus_proxy(interface = "org.freedesktop.DBus.Properties")]
-trait Properties {
-    #[dbus_proxy(signal)]
-    fn properties_changed(
-        &self,
-        interface_name: &str,
-        changed_properties: std::collections::HashMap<String, zvariant::OwnedValue>,
-        invalidated_properties: Vec<String>,
-    ) -> zbus::Result<()>;
-}
-
-async fn active() {
-    let connection = Connection::system().await.unwrap();
-
-    let proxy = PropertiesProxy::new(
-        &connection,
-        "org.freedesktop.login1",
-        "/org/freedesktop/login1/session/_32", // Path to the session (you may need to adapt this path)
-    )
-    .await
-    .unwrap();
-    let mut signal_stream = proxy.receive_properties_changed().await.unwrap();
-    println!("Listening for signals");
-    while let Some(signal) = signal_stream.next().await {
-        if let Ok(args) = signal.args() {
-            if let Some(value) = args.changed_properties.get("IdleHint") {
-                if let Ok(x) = value.downcast_ref::<bool>() {
-                    println!("Signal received {:?}", x);
-                }
-            }
-        }
+    match env::consts::OS {
+        "windows" => windows_lock_unlock().await,
+        "linux" => linux_lock_unlock().await,
+        "macos" => default(),
+        "android" => default(),
+        "ios" => default(),
+        _ => default(),
     }
+}
+
+fn default() {
+    println!("Default");
 }
