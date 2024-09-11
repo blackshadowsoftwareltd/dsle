@@ -4,6 +4,31 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+# Linux
 zbus = { version = "4.4.0", default-features = false, features = ["tokio"] }
+
+
 tokio = { version = "1.40.0", features = ["full"] }
 futures-util = "0.3.30"
+
+# Windows
+[dependencies.windows-sys]
+version = "0.59"
+features = [
+    "Win32_Security",
+    "Win32_System_Threading",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_System_LibraryLoader",
+    "Win32_Graphics_Gdi",
+]
+[dependencies.windows]
+version = "0.58"
+features = [
+    "Data_Xml_Dom",
+    "Win32_Security",
+    "Win32_System_Threading",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_Foundation",
+    "Win32_System_LibraryLoader",
+    "Win32_System_WtsApi32",
+]
