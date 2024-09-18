@@ -69,6 +69,15 @@ pub async fn windows_lock_unlock() {
             }
             DispatchMessageA(&msg);
         }
+
+        match DstroyWindow(hwnd) {
+            Ok(_) => {
+                println!("Window destroyed");
+            }
+            Err(e) => {
+                eprintln!("Failed to destroy window: {:?}", e);
+            }
+        }
     }
 }
 
